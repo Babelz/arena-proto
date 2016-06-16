@@ -123,7 +123,7 @@ function love.load()
 			local x, y 		= player2.body:getLinearVelocity();
 			local vchange 	= player_desired_vel - x;
 			local impulse 	= player2.body:getMass() * vchange;
-			player2.dir 		= DIR_RIGHT;
+			player2.dir 	= DIR_RIGHT;
 
 			player2.body:applyLinearImpulse(impulse, 0);
 		end);
@@ -133,7 +133,7 @@ function love.load()
 			local x, y 		= player2.body:getLinearVelocity();
 			local vchange 	= -player_desired_vel - x;
 			local impulse 	= player2.body:getMass() * vchange;
-			player2.dir 		= DIR_LEFT;
+			player2.dir 	= DIR_LEFT;
 			
 			player2.body:applyLinearImpulse(impulse, 0);
 		end);
