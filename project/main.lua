@@ -4,9 +4,9 @@ require "graphics"
 -- b2 world
 game_physics_world 			= nil;
 
-window_width 				= 1920;
+window_width 				= 1290;
 
-window_height 				= 1080;
+window_height 				= 750;
 
 local meter 				= 128.0; -- b2 meters, works as a scale as well
 
@@ -26,6 +26,8 @@ local player2;
 
 local entities = { };
 
+local players = nil;
+
 function register_entity(entity)
 	table.insert(entities, entity);
 end
@@ -40,36 +42,50 @@ function begin_contact(a, b, coll)
 	local a_usr_data = a:getUserData();
 	local b_usr_data = b:getUserData();
 
+	local proj = nil;
+	local gun = nil;
+
+	-- get projectile
+	if a_usr_data ~= nil then if a_usr_data.proj ~= nil then proj = a_usr_data.proj; gun = a_usr_data.gun end end
+	if b_usr_data ~= nil then if b_usr_data.proj ~= nil and proj == nil then proj = b_usr_data.proj; gun = b_usr_data.gun end end
+
+	if proj ~= nil then proj.decayed = true end
+
+
 	if a_usr_data == nil or b_usr_data == nil then return end
 
 		-- check collision
 		local player = nil;
-		local proj = nil;
-		local gun = nil;
 
 		-- player <-> projectile
 		if a_usr_data.player ~= nil then player = a_usr_data.player end
 		if b_usr_data.player ~= nil then player = b_usr_data.player end 
 
-		-- get projectile
-		if a_usr_data.proj ~= nil then proj = a_usr_data.proj; gun = a_usr_data.gun end
-		if b_usr_data.proj ~= nil and proj == nil then proj = b_usr_data.proj; gun = b_usr_data.gun end
-
-		if proj ~= nil then proj.decayed = true end
-
 		if player ~= nil then
+			print "got player"
 
 			if proj ~= nil then
+				print "got proj"
+
 				if proj.group == player.group then return end
 				
-				print "p<->p"
-
 				-- player <-> projectile
 				local damage = gun.base_damage;
 
 				player.health = player.health - damage; 
 
 				proj.decayed = true;
+
+				local other_player = players[proj.group];
+
+				print "proj <-> player"
+
+				if player.health <= 0 then
+					player.d = player.d + 1;
+					other_player.k = other_player.k + 1;
+
+					player.respawn();
+				end
 			end
 		end 
 end
@@ -188,6 +204,11 @@ function love.load()
 		end);
 
 	player2.gun = new_ump45(PLAYER_GROUP_1); 
+
+	players = {
+		player,
+		player2
+	};
 
 	-- create walls.
 	if create_world_bounds then

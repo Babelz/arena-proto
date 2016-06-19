@@ -173,6 +173,8 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 	-- create body
 	this.body  				= love.physics.newBody(game_physics_world, start_x, start_y, "dynamic");
 	this.body:setMass(70);
+	this.body:setBullet(true);
+	
 
 	this.x = 0;
 	this.y = 0;
@@ -194,6 +196,12 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 		local vec = { }; vec.x = x; vec.y = y;
 
 		return vec;
+	end
+
+	this.respawn = function()
+		this.health = 100;
+		this.body:setY(start_y / scale - center);
+		this.body:setX(start_x / scale - center);
 	end
 
 	this.update = function(dt) 
@@ -601,7 +609,7 @@ function new_ump45(player_group)
 
 	local shooting_dt 		= 0.1083333;
 	local recoil_variance 	= 0.25;
-	this.base_damage 		= 10.0;
+	this.base_damage 		= 45.0;
 	local magazine_size		= 25;
 	local reload_time 		= 4.5;
 	local bullet_force 		= 240;
