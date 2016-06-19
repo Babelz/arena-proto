@@ -39,6 +39,39 @@ end
 function begin_contact(a, b, coll)
 	local a_usr_data = a:getUserData();
 	local b_usr_data = b:getUserData();
+
+	if a_usr_data == nil or b_usr_data == nil then return end
+
+		-- check collision
+		local player = nil;
+		local proj = nil;
+		local gun = nil;
+
+		-- player <-> projectile
+		if a_usr_data.player ~= nil then player = a_usr_data.player end
+		if b_usr_data.player ~= nil then player = b_usr_data.player end 
+
+		-- get projectile
+		if a_usr_data.proj ~= nil then proj = a_usr_data.proj; gun = a_usr_data.gun end
+		if b_usr_data.proj ~= nil and proj == nil then proj = b_usr_data.proj; gun = b_usr_data.gun end
+
+		if proj ~= nil then proj.decayed = true end
+
+		if player ~= nil then
+
+			if proj ~= nil then
+				if proj.group == player.group then return end
+				
+				print "p<->p"
+
+				-- player <-> projectile
+				local damage = gun.base_damage;
+
+				player.health = player.health - damage; 
+
+				proj.decayed = true;
+			end
+		end 
 end
 
 function end_contact(a, b, coll)
@@ -115,7 +148,7 @@ function love.load()
 
 	-- p2
 	
-	player2 = new_player(window_width / 2.0 - 32, window_height / 2.0,2, playermodelLegs, playermodelAim, playermodelHead, playermodelStand);
+	player2 = new_player(window_width / 2.0 - 128, window_height / 2.0, 2, playermodelLegs, playermodelAim, playermodelHead, playermodelStand);
 	local player_input_handler = player2.input_handler;
 	
 	player_input_handler.map("right", "l", triggers.DOWN, 

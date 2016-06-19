@@ -174,10 +174,6 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 	this.body  				= love.physics.newBody(game_physics_world, start_x, start_y, "dynamic");
 	this.body:setMass(70);
 
-	local usr_data 	= new_body_usr_data(USR_DATA_TYPE_PLAYER, player_group);
-	usr_data.player = this;
-	this.body:setUserData(usr_data);
-
 	this.x = 0;
 	this.y = 0;
 	local scale 	= love.physics.getMeter();
@@ -186,6 +182,11 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 	this.shape 		= love.physics.newRectangleShape(start_x / scale - center, start_y / scale - center, size, size, 0.0); 	
 	this.fixture 	= love.physics.newFixture(this.body, this.shape, 1.0);	
 	this.fixture:setFriction(1.0);
+
+	local usr_data 	= new_body_usr_data(USR_DATA_TYPE_PLAYER, player_group);
+	usr_data.player = this;
+	this.fixture:setUserData(usr_data);
+	--this.fixture:setUserData({ player = this });
 
 	this.get_position_vector = function()
 		local x, y, w, h = get_global_bounds(this.fixture);
@@ -270,8 +271,12 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 
     	if not this.k == 0 and not this.d == 0 then kdr_val = this.k / this.d end 
 
+    	local hp_val = 0;
+
+    	if this.health <= 0 then hp_val = 0 else hp_val = this.health end
+
     	local name_text = "Name: "; 
-    	local hp_text = "Health: " .. this.health .. "%";
+    	local hp_text = "Health: " .. hp_val .. "%";
     	local gun_name = "Gun: " .. this.gun.name;
     	local bullets = "Bullets: " .. this.gun.bullets;
     	local kd = "KD: " .. this.k .. "|" .. this.d;
@@ -524,10 +529,16 @@ function new_projectile_template(x, y, w, h, player_group, gun)
 	body_usr_data.gun 	= gun;
 	body_usr_data.proj 	= this;
 
-	this.body:setUserData(body_usr_data);
+	this.shape 		= love.physics.newRectangleShape(x / scale - 0.5, y / scale - 0.5, 1, 1, 0.0); 	
+	this.fixture 	= love.physics.newFixture(this.body, this.shape, 1.0);	
+	this.fixture:setFriction(1.0);
+
+	this.fixture:setUserData(body_usr_data);
 
 	this.shape 		= love.physics.newRectangleShape(x / scale, y / scale, w, h, 0.0);
 	this.fixture 	= love.physics.newFixture(this.body, this.shape, 1.0);	
+
+	this.group = player_group;
 
 	return this;
 end
@@ -560,7 +571,7 @@ function new_smg_projectile(x, y, player_group, gun, dir)
 	this.decayed 	= false;
 
 	this.update = function(dt)
-		this.decayed = decay_dt >= decay_time;
+		if decay_dt >= decay_time then this.decayed = true end
 		
 		decay_dt = decay_dt + dt;
 	end
@@ -586,11 +597,11 @@ function new_smg_projectile(x, y, player_group, gun, dir)
 end
 
 function new_ump45(player_group) 
-	local this = new_gun_template(player_group, 16.0, 16.0);
+	local this = new_gun_template(player_group, 32.0, -16.0);
 
 	local shooting_dt 		= 0.1083333;
 	local recoil_variance 	= 0.25;
-	local base_damage 		= 10.0;
+	this.base_damage 		= 10.0;
 	local magazine_size		= 25;
 	local reload_time 		= 4.5;
 	local bullet_force 		= 240;
