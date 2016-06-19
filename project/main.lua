@@ -1,6 +1,9 @@
 require "entities"
 require "graphics"
 
+-- todo: physics
+-- todo: bullet physics not working correctly, no idea why
+
 -- b2 world
 game_physics_world 			= nil;
 
