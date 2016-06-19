@@ -214,6 +214,7 @@ function love.load()
 		end,
 		
 		draw = function()
+			if true then return end
 			love.graphics.setColor(255, 255, 255, 255);
 			love.graphics.print(mem_str, 32, 32, 0, 1, 1, 0, 0);
 			love.graphics.print(fps_str, 32, 64, 0, 1, 1, 0, 0);
