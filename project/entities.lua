@@ -15,6 +15,37 @@ USR_DATA_TYPE_STATIC_ENTITY = 3;
 DIR_LEFT 					= -1;
 DIR_RIGHT 					= 1;
 
+-- Vesa karjalaisen gonaratkaisut aka lua ei toimi
+function angleOfPoint( pt )
+   local x, y 	= pt.x, pt.y
+   local radian = math.atan2(y,x)
+   local angle 	= radian*180/math.pi
+
+   if angle < 0 then angle = 360 + angle end
+   
+   return angle
+end
+
+-- returns the degrees between two points (note: 0 degrees is 'east')
+function angleBetweenPoints(aPosX,aPosY, bPosX, bPosY )
+   local x, y = bPosX - aPosX, bPosY - aPosY
+
+   return angleOfPoint({ x = x, y = y })
+end
+
+-- returns the smallest angle between the two angles
+-- ie: the difference between the two angles via the shortest distance
+function smallestAngleDiff( target, source )
+   local a = target - source
+   
+   if (a > 180) then a = a - 360
+   elseif (a < -180) then a = a + 360 end
+   
+   return a
+end
+
+-- gonaratkaisut end
+
 function new_body_usr_data(id, grp) 
 	local this = { };
 
@@ -24,20 +55,120 @@ function new_body_usr_data(id, grp)
 	return this;
 end
 
-function new_player(start_x, start_y, player_group)
+function new_aim_zone()
+	local this = {};
+	
+	this.mouse = love.mouse.getPosition();
+	this.isDown = love.mouse.isDown();
+	
+	this.getFrame = function(posX, posY, posXLUA)
+		print(posX, posXLUA); --lua mitä tääällä tapahtuu luaaaa
+		mousePosX, mousePosY = love.mouse.getPosition();
+		print(mousePosX, mousePosY);
+		local angle = angleBetweenPoints(posXLUA,posY, mousePosX, mousePosY);
+
+		local index = math.floor(angle/18);
+		if index > 18 then
+		index = 18
+		end
+		if index < 1 then
+		index = 1;
+		end
+	return index;
+	end
+return this;
+end
+
+function new_background(image, size_x, size_y) 
 	local this = { };
 
+	this.size_x = size_x;
+	this.size_y = size_y;
+	this.image = image;
+	
+	this.quad = love.graphics.newQuad(0,0,this.size_x, this.size_y, this.size_x, this.size_y);
+
+	this.draw = function()
+		love.graphics.setColor(255, 255, 255, 255);
+		
+		love.graphics.draw(this.image, this.quad, 0, 0);
+		
+	end
+	return this;
+end
+
+function new_animation(image, frameSizeX, frameSizeY,
+						amountX, frameAmount)
+	local this = { };
+	this.image = image;
+	this.amountX = amountX-1;
+	this.frameAmount = frameAmount;
+	this.currentFrame = 1;
+	this.quads = {};
+	this.time = 0;
+	this.direction = 1;
+
+	-- Create array of quads for drawing.
+	local y = 0;
+	local x = -1;
+	for i = 1, this.frameAmount do
+		if x >= this.amountX then x = 0 y = y+1 else x = x+1 end
+		this.quads[i] = love.graphics.newQuad(x * frameSizeX, y * frameSizeY,
+		frameSizeX, frameSizeY, image:getDimensions());
+	end
+
+	-- Get data needed for drawing
+	this.getDrawData = function()
+		
+		return this.image, this.quads[this.currentFrame]
+	end
+
+	this.nextFrame = function()
+		if this.currentFrame >= this.frameAmount then this.currentFrame = 1
+		else this.currentFrame = this.currentFrame+1 end
+	end
+	
+	this.setFrame = function(frameIndex, frameIndex2)
+
+	if (frameIndex2 > frameAmount) then
+			print("Index too high")
+		else
+		this.currentFrame = frameIndex2;
+		end
+	end
+	return this;
+end
+function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head, img_stand)
+	local this = { };
+	print(img_stand:type() .. player_group);
 	this.index 				= index;
-	this.texture 			= nil;
+	-- animation
+	this.animation_leg		= new_animation(img_legs, 64, 64, 4, 16)
+	this.animation_aim		= new_animation(img_aim, 64, 64, 8, 18)
+	this.image_head 		= img_head;
+	this.image_stand 		= img_stand;
+	this.quad_head			= love.graphics.newQuad(0,0, 32,32, this.image_head:getDimensions());
+	this.quad_stand			= love.graphics.newQuad(0,0,64,64, this.image_stand:getDimensions());
+	this.stand				= 0;
+	
+	-- mouse targetting for animation
+	this.aim = new_aim_zone();
+	
+	-- body part locations
+	this.legs_x 	= 32; 	this.legs_y 	= 22;
+	this.waist_x 	= 44; 	this.waist_y	= 40;
+	this.neck_x 	= 43;	this.neck_y 	= 25;
+	this.head_x 	= 12;	this.head_y 	= 17;
+	
 	this.input_handler  	= new_input_handler();
 	this.group 				= player_group;
-	this.dir 				= DIR_LEFT;
-
+	this.dir 				= DIR_LEFT;			
 	-- create body
 	this.body  				= love.physics.newBody(game_physics_world, start_x, start_y, "dynamic");
 	this.body:setMass(70);
 	this.body:setUserData(new_body_usr_data(USR_DATA_TYPE_PLAYER, player_group));
-
+	this.x = 0;
+	this.y = 0;
 	local scale 	= love.physics.getMeter();
 	local size  	= 20;
 	local center 	= size / 2;
@@ -55,13 +186,42 @@ function new_player(start_x, start_y, player_group)
 
 	this.update = function(dt) 
 		-- update
+		
+		
 		this.input_handler.listen(dt);
-    
-    	x, y = this.body:getPosition();
+		local x, y = this.body:getPosition();
+		
+		--Anime shit
+		lua_drunk = this.aim:getFrame(x,y,x);
+		lua_drunk2= lua_drunk;
+		this.animation_aim:setFrame(lua_drunk, lua_drunk2);
+		local moving = true;
+		
+		this.stand = this.stand+1;
+		if(this.animation_leg.time > 0.05) then
+			this.animation_leg:nextFrame(); this.animation_leg.time = 0
+			this.stand= 0;
+			end
+		
+		if (y > this.y+3) then
+			this.animation_leg.time = 0;
+			moving = false;
+		elseif (y < this.y-3) then
+			this.animation_leg.time = 0;
+			moving = false;
+		end
+		if (x > this.x+2) then
+			if(moving) then this.animation_leg.direction =-1; end
+			this.animation_leg.time =this.animation_leg.time +0.03;
 
-    	this.x = x;
+		elseif (x < this.x-2) then
+			if (moving) then this.animation_leg.direction = 1; end
+			this.animation_leg.time = this.animation_leg.time +0.03;
+			end
+		-- Anime end
+		this.x = x;
     	this.y = y;
-    
+		
     	if this.gun == nil then return end
 
     	local gun = this.gun;
@@ -73,11 +233,22 @@ function new_player(start_x, start_y, player_group)
 
     this.draw = function()
     	local x, y, w, h = get_global_bounds(this.fixture);
-
-    	love.graphics.setColor(0, 255, 0, 255);
-
-    	love.graphics.rectangle("fill", x, y, w, h);
-
+		local pos_x = x+w/2;
+		local pos_y = y+h/2;
+    	love.graphics.setColor(255, 255, 255, 255);
+		--love.graphics.rectangle("fill", x, y, w, h);
+		
+		if (this.stand < 15) then
+		local legImg, legQuad = this.animation_leg:getDrawData();
+		love.graphics.draw(legImg, legQuad, pos_x , pos_y-7, 0, this.animation_leg.direction, 1, 32, 32, 0, 0);
+		else
+		love.graphics.draw(this.image_stand, this.quad_stand, pos_x, pos_y-5, 0, this.animation_leg.direction, 1, 32,32,0,0);
+		end
+		local aimImg, aimQuad = this.animation_aim:getDrawData();
+		print (this.animation_aim.currentFrame);
+		love.graphics.draw(aimImg, aimQuad, pos_x, pos_y -64 + this.waist_y -5 , 0, this.animation_leg.direction, 1, 40,32,0,0);
+		
+		love.graphics.draw(this.image_head, this.quad_head, pos_x , pos_y - 64 + this.neck_y -5, 0, this.animation_leg.direction, 1, 16,16,0,0);
     	if this.gun == nil then return end
 
     	this.gun.draw();
@@ -156,6 +327,7 @@ function new_tile_prototype(tex_src_index_x, tex_src_index_y, id, type)
 		tile.x 				= x;
 		tile.y 				= y;
 		tile.image 			= image;
+		
 		-- init quad
 		local src_x_pos = tex_src_index_x * TILE_WIDTH;
 		local src_y_pos = tex_src_index_y * TILE_HEIGHT;
