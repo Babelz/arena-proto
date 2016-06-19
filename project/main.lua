@@ -203,7 +203,7 @@ function love.load()
 			player2.gun.reload();
 		end);
 
-	player2.gun = new_ump45(PLAYER_GROUP_1); 
+	player2.gun = new_ump45(PLAYER_GROUP_2); 
 
 	players = {
 		player,

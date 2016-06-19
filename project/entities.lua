@@ -200,13 +200,19 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 
 	this.respawn = function()
 		this.health = 100;
-		this.body:setY(start_y / scale - center);
-		this.body:setX(start_x / scale - center);
+
+		this.update_callback = function()
+			this.body:setY(start_y + 64);
+			this.body:setX(start_x);
+		end
 	end
 
 	this.update = function(dt) 
 		-- update
-		
+		if this.update_callback ~= nil then
+			this.update_callback();
+			this.update_callback = nil;
+		end
 		
 		this.input_handler.listen(dt);
 		local x, y = this.body:getPosition();
@@ -277,7 +283,8 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 
     	local kdr_val = 0;
 
-    	if not this.k == 0 and not this.d == 0 then kdr_val = this.k / this.d end 
+    	if this.k ~= 0 and this.d ~= 0 then kdr_val = this.k / this.d 
+    	elseif this.k >= 0 and this.d == 0 then kdr_val = this.k end
 
     	local hp_val = 0;
 
