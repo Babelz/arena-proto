@@ -15,6 +15,11 @@ USR_DATA_TYPE_STATIC_ENTITY = 3;
 DIR_LEFT 					= -1;
 DIR_RIGHT 					= 1;
 
+player_colors = {
+	colors.green,
+	colors.red
+}
+
 -- Vesa karjalaisen gonaratkaisut aka lua ei toimi
 function angleOfPoint( pt )
    local x, y 	= pt.x, pt.y
@@ -149,6 +154,9 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 	this.quad_stand			= love.graphics.newQuad(0,0,64,64, this.image_stand:getDimensions());
 	this.stand				= 0;
 	this.health 			= 100;
+	this.k 					= 0;
+	this.d 					= 0;
+	this.color 				= player_colors[player_group];
 
 	-- mouse targetting for animation
 	this.aim = new_aim_zone();
@@ -165,7 +173,11 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
 	-- create body
 	this.body  				= love.physics.newBody(game_physics_world, start_x, start_y, "dynamic");
 	this.body:setMass(70);
-	this.body:setUserData(new_body_usr_data(USR_DATA_TYPE_PLAYER, player_group));
+
+	local usr_data 	= new_body_usr_data(USR_DATA_TYPE_PLAYER, player_group);
+	usr_data.player = this;
+	this.body:setUserData(usr_data);
+
 	this.x = 0;
 	this.y = 0;
 	local scale 	= love.physics.getMeter();
@@ -250,27 +262,35 @@ function new_player(start_x, start_y, player_group, img_legs, img_aim, img_head,
     	
     	local hud_pos = { x = 32.0, y = 32.0 };
 
-    	if this.group == PLAYER_GROUP_2 then hud_pos.x = 196.0 end
+    	if this.group == PLAYER_GROUP_2 then hud_pos.x = window_width - 150 end
 
     	--if this.player_group == PLAYER_GROUP_1 then hud_pos.x = 128.0 else hud_pos.x = window_width - 128.0 end
+
+    	local kdr_val = 0;
+
+    	if not this.k == 0 and not this.d == 0 then kdr_val = this.k / this.d end 
 
     	local name_text = "Name: "; 
     	local hp_text = "Health: " .. this.health .. "%";
     	local gun_name = "Gun: " .. this.gun.name;
     	local bullets = "Bullets: " .. this.gun.bullets;
+    	local kd = "KD: " .. this.k .. "|" .. this.d;
+    	local kdr = "KDR: " .. kdr_val;
 
     	if this.group == PLAYER_GROUP_1 then name_text = name_text .. "player1" else name_text = name_text .. "player2" end
 
     	local bg = colors.white;
     	bg.a = 180;
     	love_ext_set_color(bg);
-    	love.graphics.rectangle("fill", hud_pos.x, hud_pos.y, 128, 128);
+    	love.graphics.rectangle("fill", hud_pos.x, hud_pos.y, 128, 256);
 
-    	love_ext_set_color(colors.green);
+    	love_ext_set_color(this.color);
     	love.graphics.print(name_text, hud_pos.x, hud_pos.y);
     	love.graphics.print(hp_text, hud_pos.x, hud_pos.y + 32);
     	love.graphics.print(gun_name, hud_pos.x, hud_pos.y + 64);
     	love.graphics.print(bullets, hud_pos.x, hud_pos.y + 96);
+    	love.graphics.print(kd, hud_pos.x, hud_pos.y + 128);
+    	love.graphics.print(kdr, hud_pos.x, hud_pos.y + 160);
 
     	if this.gun == nil then return end
 

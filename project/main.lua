@@ -22,6 +22,7 @@ local create_world_bounds	= false;
 
 -- player
 local player;
+local player2;
 
 local entities = { };
 
@@ -38,13 +39,6 @@ end
 function begin_contact(a, b, coll)
 	local a_usr_data = a:getUserData();
 	local b_usr_data = b:getUserData();
-
-	if not a_usr_data == nil then
-		if b_usr_data == nil then
-
-			print("PROJ <-> WORLD")
-		end
-	end
 end
 
 function end_contact(a, b, coll)
@@ -112,6 +106,8 @@ function love.load()
 
 	player_input_handler.map("reload", "r", triggers.PRESSED,
 		function(dt)
+			if player.gun.is_reloading then return end
+
 			player.gun.reload();
 		end);
 
@@ -154,7 +150,7 @@ function love.load()
 
 	player_input_handler.map("reload", "p", triggers.PRESSED,
 		function(dt)
-			print("P2 reload")
+			if player2.gun.is_reloading then return end
 			player2.gun.reload();
 		end);
 
